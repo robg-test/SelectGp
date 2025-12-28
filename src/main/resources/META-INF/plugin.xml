@@ -22,33 +22,35 @@
     <extensions defaultExtensionNs="com.intellij">
 
     </extensions>
+
     <actions>
-        <action
-                id="GptPromptDialogSelection"
-                text="Gpt Prompt on Selection"
-                class="dev.bobproductions.bibdev.ui.action.SelectionPromptAction"
-        >
+
+        <group
+                id="SelectGpGroup"
+                text="SelectGp"
+                popup="true">
+
             <add-to-group
                     group-id="EditorPopupMenu"
                     anchor="last"/>
-        </action    >
-        <action
-                id="GptPromptDialogFile"
-                text="Gpt Prompt on File"
-                class="dev.bobproductions.bibdev.ui.action.FileSelectionAction"
-        >
-            <add-to-group
-                    group-id="EditorPopupMenu"
-                    anchor="last"/>
-        </action>
-        <action
-                id="GptFix"
-                text="Run Gpt Fix"
-                class="dev.bobproductions.bibdev.ui.action.FixSelectionAction"
-        >
-            <add-to-group
-                    group-id="EditorPopupMenu"
-                    anchor="last"/>
-        </action>
+
+            <action
+                    id="GpPromptDialogSelection"
+                    text="Modify Selection"
+                    class="dev.bobproductions.bibdev.ui.action.SelectionPromptAction"/>
+
+            <action
+                    id="GpPromptDialogFile"
+                    text="Modify File"
+                    class="dev.bobproductions.bibdev.ui.action.FileSelectionAction"/>
+
+            <action
+                    id="GpFix"
+                    text="Fix Selection"
+                    class="dev.bobproductions.bibdev.ui.action.FixSelectionAction"/>
+
+        </group>
+
     </actions>
+>
 </idea-plugin>
