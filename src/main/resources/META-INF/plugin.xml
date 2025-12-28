@@ -1,0 +1,54 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>dev.bob-productions.bibdev</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
+    <name>Bibdev</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor url="https://bob-productions.dev">Bob Productions</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+
+    </extensions>
+    <actions>
+        <action
+                id="GptPromptDialogSelection"
+                text="Gpt Prompt on Selection"
+                class="dev.bobproductions.bibdev.ui.action.SelectionPromptAction"
+        >
+            <add-to-group
+                    group-id="EditorPopupMenu"
+                    anchor="last"/>
+        </action    >
+        <action
+                id="GptPromptDialogFile"
+                text="Gpt Prompt on File"
+                class="dev.bobproductions.bibdev.ui.action.FileSelectionAction"
+        >
+            <add-to-group
+                    group-id="EditorPopupMenu"
+                    anchor="last"/>
+        </action>
+        <action
+                id="GptFix"
+                text="Run Gpt Fix"
+                class="dev.bobproductions.bibdev.ui.action.FixSelectionAction"
+        >
+            <add-to-group
+                    group-id="EditorPopupMenu"
+                    anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
