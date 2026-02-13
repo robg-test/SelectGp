@@ -20,14 +20,17 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-
+        <applicationConfigurable
+                id="selectgp.settings"
+                displayName="Super Grunk Plugin"
+                instance="dev.bobproductions.bibdev.ui.config.SelectGpConfiguration"/>
     </extensions>
 
     <actions>
 
         <group
-                id="SelectGpGroup"
-                text="SelectGp"
+                id="SuperGrunkGroup"
+                text="SuperGrunk"
                 popup="true">
 
             <add-to-group
@@ -35,22 +38,25 @@
                     anchor="last"/>
 
             <action
-                    id="GpPromptDialogSelection"
+                    id="GrunkDialogSelection"
                     text="Modify Selection"
                     class="dev.bobproductions.bibdev.ui.action.SelectionPromptAction"/>
 
             <action
-                    id="GpPromptDialogFile"
+                    id="GrunkDialogFile"
                     text="Modify File"
                     class="dev.bobproductions.bibdev.ui.action.FileSelectionAction"/>
 
             <action
-                    id="GpFix"
+                    id="GrunkFix"
                     text="Fix Selection"
                     class="dev.bobproductions.bibdev.ui.action.FixSelectionAction"/>
+            <action
+                    id="GrunkFixFile"
+                    text="Fix File"
+                    class="dev.bobproductions.bibdev.ui.action.FixFileAction"/>
 
         </group>
-
     </actions>
 >
 </idea-plugin>

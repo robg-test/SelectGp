@@ -2,11 +2,8 @@ package dev.bobproductions.bibdev.ui
 
 import com.fasterxml.jackson.core.io.JsonStringEncoder
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.SelectionModel
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.RightGap
@@ -19,20 +16,19 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import dev.bobproductions.bibdev.service.api.GptModelRequestInvoker
 import dev.bobproductions.bibdev.service.builders.GptModelRequestBuilder
+import dev.bobproductions.bibdev.service.builders.GptModelRequestType
 import dev.bobproductions.bibdev.service.builders.Model
 import dev.bobproductions.bibdev.service.postprocessors.getIndentation
 import dev.bobproductions.bibdev.service.postprocessors.leadingWhitespace
 import dev.bobproductions.bibdev.service.postprocessors.reindent
+import getLineErrorsBetweenOffset
 import java.awt.Point
 import javax.swing.JComponent
 
     class GptPrompt(
-        private val contextualString: String,
-        private val document: Document,
-        private val selection: SelectionModel,
-        private val project: Project,
         private val editor: Editor,
-        private val overridePrompt: String? = null
+        private val overridePrompt: String? = null,
+        private val wholeFile: Boolean = false
     ) {
 
         private val inputField = JBTextField()
@@ -74,24 +70,34 @@ import javax.swing.JComponent
         }
 
         private fun applyChanges() {
-            val preexistingCode = contextualString
+            val preexistingCode = editor.selectionModel.selectedText ?: editor.document.text
             val fileExtension = FileDocumentManager.getInstance().getFile(editor.document)?.extension ?: return
 
 
             val preexistingCodeEscaped = jsonEscape(preexistingCode)
-            val gptModelRequestBuilder =
-                GptModelRequestBuilder(
-                    fileExtension,
-                    overridePrompt ?: inputField.text,
-                    Model(System.getenv("MODEL_NAME") ?: "gpt-4o")
-                )
+            val gptModelRequestBuilder = GptModelRequestBuilder()
+            gptModelRequestBuilder.fileExtension = fileExtension
+
+            val startOffset = editor.selectionModel.selectionStart
+            val endOffset = editor.selectionModel.selectionEnd
+
+            gptModelRequestBuilder.documentErrors = getLineErrorsBetweenOffset(editor,  startOffset, endOffset)
+
+            gptModelRequestBuilder.prompt = overridePrompt ?: inputField.text
+
+            gptModelRequestBuilder.model = Model(System.getenv("MODEL_NAME") ?: "gpt-5.1")
             gptModelRequestBuilder.existingCode = preexistingCodeEscaped
-            gptModelRequestBuilder.buildBody()
-            val modelInvoker = GptModelRequestInvoker(gptModelRequestBuilder.buildRequest())
+            if (wholeFile) {
+                gptModelRequestBuilder.buildGenerationBody(GptModelRequestType.FULL)
+            }
+            else {
+                gptModelRequestBuilder.buildGenerationBody(GptModelRequestType.PARTIAL)
+            }
+            val modelInvoker = GptModelRequestInvoker(gptModelRequestBuilder.buildGenerationRequest())
 
 
             ProgressManager.getInstance().run(object : Task.Modal(
-                project,
+                editor.project,
                 "Calling Model",
                 true
             ) {
@@ -99,19 +105,36 @@ import javax.swing.JComponent
                     indicator.isIndeterminate = true
                     indicator.text = "Waiting for AI response..."
 
-                    val rawResult = modelInvoker.invokeRequest()
+                    val rawResult = modelInvoker.performModelRequest()
 
                     ApplicationManager.getApplication().invokeLater {
-                        val indent = document.getIndentation(selection.selectionStart)
+                        val indent = if (!wholeFile) {
+                            editor.document.getIndentation(editor.selectionModel.selectionStart)
+                        } else {
+                            editor.document.getIndentation(0)
+                        }
                         val result = rawResult.reindent(indent)
 
-                        val start = selection.selectionStart
-                        val end = selection.selectionEnd
+                        var start: Int
+                        var end: Int
 
-                        if (start <= document.textLength) {
+                        if (wholeFile) {
+                            start = 0
+                            end = editor.document.textLength
                             WriteCommandAction.runWriteCommandAction(project) {
-                                document.deleteString(start, end)
-                                document.insertString( start, preexistingCode.leadingWhitespace() + result)
+                                editor.document.deleteString(start, end)
+                                editor.document.insertString(start,  preexistingCode.leadingWhitespace() + result)
+                            }
+                        }
+                        else {
+                            start = editor.selectionModel.selectionStart
+                            end = editor.selectionModel.selectionEnd
+
+                            if (start <= editor.document.textLength) {
+                                WriteCommandAction.runWriteCommandAction(project) {
+                                    editor.document.deleteString(start, end)
+                                    editor.document.insertString( start, preexistingCode.leadingWhitespace() + result)
+                                }
                             }
                         }
                     }
