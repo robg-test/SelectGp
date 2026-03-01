@@ -5,10 +5,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import dev.bobproductions.bibdev.ui.GptPrompt
 
-class FixSelectionAction: AnAction() {
+class FixSelectionAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return
 
-        GptPrompt( editor, "Fix").show()
+        GptPrompt(editor, "Fix", wholeFile = false).show()
     }
 }

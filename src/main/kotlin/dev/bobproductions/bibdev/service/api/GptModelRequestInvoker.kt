@@ -1,4 +1,3 @@
-
 package dev.bobproductions.bibdev.service.api
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
@@ -26,30 +25,39 @@ class GptModelRequestInvoker(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class ApiResponse(
-        val choices: List<Choice>
+        val output: List<OutputItem> = emptyList()
     )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    data class Choice(
-        val message: Message
+    data class OutputItem(
+        val type: String? = null,
+        val content: List<ContentItem>? = null
     )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    data class Message(
-        val content: String
+    data class ContentItem(
+        val type: String? = null,
+        val text: String? = null
     )
 
     fun performModelRequest(): String {
-        client.newCall(request).execute().use { response ->
-            val body = response.body.string()
+    client.newCall(request).execute().use { response ->
+        val body = response.body?.string() ?: ""
 
-            if (!response.isSuccessful) {
-                error("HTTP ${response.code}: $body")
-            }
+        if (!response.isSuccessful) {
+            error("HTTP ${response.code}: $body")
+        }
 
-            val parsed: ApiResponse = mapper.readValue<ApiResponse>(content = body)
-            val content = parsed.choices.first().message.content
-            return content
+        val parsed: ApiResponse = mapper.readValue(body)
+
+        val text = parsed.output
+            .firstOrNull { it.type == "message" }
+            ?.content
+            ?.firstOrNull { it.type == "output_text" }
+            ?.text
+
+        LOG.warn(text)
+        return text ?: error("No output_text found in response. Raw body: $body")
         }
     }
 

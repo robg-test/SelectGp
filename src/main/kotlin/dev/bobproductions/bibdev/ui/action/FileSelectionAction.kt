@@ -10,4 +10,5 @@ class FileSelectionAction : AnAction() {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return
 
         GptPrompt(editor, wholeFile = true).show()
-    } }
+    }
+}

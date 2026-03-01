@@ -17,14 +17,24 @@ import java.awt.Desktop
 import java.awt.event.MouseAdapter
 import javax.swing.*
 
-class SelectGpConfiguration: Configurable {
+class SelectGpConfiguration(
+    private val connectionTester: (String) -> Boolean = { apiKey ->
+        val requestBuilder = GptModelRequestBuilder()
+        requestBuilder.apiKey = apiKey
+        val invoker = GptModelRequestInvoker(requestBuilder.buildTestRequest())
+        invoker.canCommunicateWithModel()
+        true
+    },
+    private val apiKeyLoader: () -> String? = { loadGptApiKey()?.toString() },
+    private val apiKeySaver: (String) -> Unit = { key -> saveGptApiKey(key) }
+) : Configurable {
+
     private lateinit var providerField: JTextField
     private lateinit var enabledCheckBox: JCheckBox
     private lateinit var apiKeyButton: JButton
     private lateinit var testConnectionButton: JButton
     private lateinit var gptLabel: JLabel
     private lateinit var apiKeyField: JBPasswordField
-
 
     override fun createComponent(): JComponent {
         providerField = JBTextField()
@@ -33,32 +43,31 @@ class SelectGpConfiguration: Configurable {
         }
         enabledCheckBox = JBCheckBox("Enable plugin")
         apiKeyButton = JButton("API Key")
-        testConnectionButton = JButton("Test").apply { cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(e: java.awt.event.MouseEvent?) {
-                val requestBuilder = GptModelRequestBuilder()
-                requestBuilder.apiKey = String(apiKeyField.password)
-                val invoker = GptModelRequestInvoker(requestBuilder.buildTestRequest())
-                try {
-                    invoker.canCommunicateWithModel()
-                    ApplicationManager.getApplication().invokeLater {
-                        Messages.showDialog(
-                            "Successfully connected to OpenAI",
-                            "SuperGrunk Ready",
-                            arrayOf("OK"),
-                            0,
-                            AllIcons.General.InspectionsOK
+        testConnectionButton = JButton("Test").apply {
+            cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+            addMouseListener(object : MouseAdapter() {
+                override fun mouseClicked(e: java.awt.event.MouseEvent?) {
+                    val apiKey = String(apiKeyField.password)
+                    try {
+                        connectionTester(apiKey)
+                        ApplicationManager.getApplication().invokeLater {
+                            Messages.showDialog(
+                                "Successfully connected to OpenAI",
+                                "SuperGrunk Ready",
+                                arrayOf("OK"),
+                                0,
+                                AllIcons.General.InspectionsOK
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Messages.showErrorDialog(
+                            "Failed to connect to OpenAI: ${e.message}",
+                            "SuperGrunk Failure"
                         )
                     }
-                } catch (e: Exception) {
-                    Messages.showErrorDialog(
-                        "Failed to connect to OpenAI: ${e.message}",
-                        "SuperGrunk Failure"
-                    )
                 }
-
-            }
-        })}
+            })
+        }
         gptLabel = JLabel("<html><a href='https://platform.openai.com/api-keys'>Get a OpenAI API Key</a></html>")
             .apply {
                 cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
@@ -69,25 +78,22 @@ class SelectGpConfiguration: Configurable {
                 })
             }
 
-
         val fixedSize = apiKeyField.preferredSize
         apiKeyField.minimumSize = fixedSize
         apiKeyField.preferredSize = fixedSize
         apiKeyField.maximumSize = fixedSize
 
-
         val apiKeyPanel = JPanel(BorderLayout(8, 0)).apply {
-            add(
-                apiKeyField, BorderLayout.CENTER
-            )
+            add(apiKeyField, BorderLayout.CENTER)
             add(testConnectionButton, BorderLayout.EAST)
         }
 
         val form = FormBuilder.createFormBuilder()
-            .addLabeledComponent("Provider", JComboBox(arrayOf("OpenAI ChatGpt")).apply
-                { selectedItem = SelectGpSettings.getInstance().state.provider })
+            .addLabeledComponent("Provider", JComboBox(arrayOf("OpenAI ChatGpt")).apply {
+                selectedItem = SelectGpSettings.getInstance().state.provider
+            })
             .addLabeledComponent("Set API Key", apiKeyPanel)
-            .addLabeledComponent("", gptLabel )
+            .addLabeledComponent("", gptLabel)
             .addComponent(enabledCheckBox)
             .panel
 
@@ -99,14 +105,14 @@ class SelectGpConfiguration: Configurable {
     override fun isModified(): Boolean {
         val settings = SelectGpSettings.getInstance().state
         return providerField.text != settings.provider ||
-               enabledCheckBox.isSelected != settings.enabled
+            enabledCheckBox.isSelected != settings.enabled
     }
 
     override fun apply() {
         val settings = SelectGpSettings.getInstance().state
         settings.provider = providerField.text
         settings.enabled = enabledCheckBox.isSelected
-        saveGptApiKey(String(apiKeyField.password))
+        apiKeySaver(String(apiKeyField.password))
     }
 
     override fun reset() {
@@ -114,10 +120,9 @@ class SelectGpConfiguration: Configurable {
         providerField.text = settings.provider
         enabledCheckBox.isSelected = settings.enabled
         ApplicationManager.getApplication().executeOnPooledThread {
-            val apiKey = loadGptApiKey()
-
+            val apiKey = apiKeyLoader()
             ApplicationManager.getApplication().invokeLater {
-                apiKeyField.text = apiKey.toString()
+                apiKeyField.text = apiKey.orEmpty()
             }
         }
     }

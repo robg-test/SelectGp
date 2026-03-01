@@ -10,4 +10,5 @@ class FixFileAction : AnAction() {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return
 
         GptPrompt(editor, overridePrompt = "Fix", wholeFile = true).show()
-    } }
+    }
+}
